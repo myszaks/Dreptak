@@ -135,9 +135,9 @@ export function useCreateChallenge() {
       const profile = useAppStore.getState().profile
       if (!profile) throw new Error('Musisz być zalogowany')
 
-      // Generuj ID po stronie klienta — unikamy INSERT+SELECT w jednym zapytaniu
-      // (INSERT+SELECT od razu odpytuje RLS policies na SELECT, co powoduje 42P17)
       const id = crypto.randomUUID()
+      // Abort po 12 sekundach — zapobiega wiecznym spinneram na słabej sieci
+      const signal = AbortSignal.timeout(12_000)
 
       const { error: insertError } = await supabase
         .from('challenges')
@@ -146,32 +146,32 @@ export function useCreateChallenge() {
           ...input,
           created_by: profile.id,
         })
+        .abortSignal(signal)
 
       if (insertError) {
         console.error('[createChallenge insert]', insertError)
         throw new Error(insertError.message || 'Błąd podczas tworzenia wyzwania')
       }
 
-      // Auto-join as admin
-      const { error: memberErr } = await supabase
-        .from('challenge_members')
-        .insert({ challenge_id: id, user_id: profile.id, role: 'admin' })
+      // Drugorzędne inserty — równolegle, nie blokują głównego flow
+      await Promise.allSettled([
+        supabase
+          .from('challenge_members')
+          .insert({ challenge_id: id, user_id: profile.id, role: 'admin' })
+          .abortSignal(signal),
+        supabase
+          .from('activity_feed')
+          .insert({ challenge_id: id, type: 'challenge_started', actor_id: profile.id })
+          .abortSignal(signal),
+      ])
 
-      if (memberErr) console.error('[challenge_members insert]', memberErr)
-
-      // Feed event
-      const { error: feedErr } = await supabase
-        .from('activity_feed')
-        .insert({ challenge_id: id, type: 'challenge_started', actor_id: profile.id })
-
-      if (feedErr) console.error('[activity_feed insert]', feedErr)
-
-      // Fetch the auto-generated slug (trigger runs on INSERT, can't chain .select() due to RLS)
+      // Pobierz slug wygenerowany przez trigger
       const { data: created } = await supabase
         .from('challenges')
         .select('slug')
         .eq('id', id)
         .single()
+        .abortSignal(signal)
 
       return { id, slug: created?.slug ?? id }
     },

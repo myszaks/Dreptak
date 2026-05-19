@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store/app-store'
 import type { Profile } from '@/types/database'
@@ -11,6 +12,7 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
   const { profile, setProfile } = useAppStore()
   const supabase = createClient()
+  const router = useRouter()
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -26,6 +28,11 @@ export function useAuth() {
           setProfile(data)
         } else {
           setProfile(null)
+          // Token wygasł lub użytkownik usunięty — wymuś pełne wylogowanie
+          if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+            await supabase.auth.signOut()
+            router.replace('/auth')
+          }
         }
 
         setLoading(false)
@@ -33,7 +40,7 @@ export function useAuth() {
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase, setProfile])
+  }, [supabase, setProfile, router])
 
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
