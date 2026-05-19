@@ -31,12 +31,13 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  const publicPaths = ['/auth', '/auth/callback', '/api/og', '/manifest.json']
+  const publicPaths = ['/auth', '/auth/callback', '/api/og', '/manifest.json', '/join']
   const isPublicPath = publicPaths.some((p) => pathname.startsWith(p))
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth'
+    url.searchParams.set('next', `${pathname}${request.nextUrl.search}`)
     return NextResponse.redirect(url)
   }
 

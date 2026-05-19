@@ -42,11 +42,12 @@ export function useAuth() {
     return () => subscription.unsubscribe()
   }, [supabase, setProfile, router])
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (nextPath = '/') => {
+    const safeNextPath = nextPath.startsWith('/') ? nextPath : '/'
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNextPath)}`,
       },
     })
     if (error) throw error

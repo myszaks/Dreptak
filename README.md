@@ -13,6 +13,32 @@ A production-ready social step-tracking challenge app built with Next.js 15, Sup
 - 📱 **PWA** — install to home screen, works offline
 - 🇵🇱 **Polish trash talk** — auto-generated roasts in Polish
 
+## Regression checklist (stability + performance)
+
+Use this checklist after each deployment/hotfix:
+
+- [ ] **Challenge details load** (`/challenges/[slug]`)
+  - ✅ fixed: ranking/feed renders or shows retry fallback within ~12s
+  - ❌ not fixed: spinner/pending state never resolves
+- [ ] **Create challenge flow** (`/challenges/create`)
+  - ✅ fixed: create ends with redirect to new challenge or explicit error toast
+  - ❌ not fixed: submit button stays loading without resolution
+- [ ] **Save steps flow** (`/upload` and challenge detail upload)
+  - ✅ fixed: save ends with success or explicit error within timeout window
+  - ❌ not fixed: save stays pending indefinitely
+- [ ] **Join by code flow** (`/challenges/join` and `/join/{CODE}`)
+  - ✅ fixed: both routes resolve to join success/error and support auth redirect back
+  - ❌ not fixed: `/join/{CODE}` is 404/blocked or does not prefill/autojoin
+- [ ] **Navigation speed** (`/home` ↔ `/challenges` ↔ `/upload` ↔ `/challenges/[slug]`)
+  - ✅ fixed: transitions are responsive and avoid forced heavy refetch on mount
+  - ❌ not fixed: visible pauses caused by repeated full refetch + re-render bursts
+- [ ] **Member counts consistency**
+  - ✅ fixed: same participant count source on home/list/detail and refresh after joins
+  - ❌ not fixed: home/detail shows stale or inconsistent counts vs challenges list
+- [ ] **Late-join backfill**
+  - ✅ fixed: after joining active challenge, historical daily entries within challenge dates are included
+  - ❌ not fixed: pre-existing same-day/date-range steps are missing from challenge
+
 ## Tech Stack
 
 - **Framework**: Next.js 15 (App Router)

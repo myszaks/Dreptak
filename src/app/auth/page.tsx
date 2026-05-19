@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Mail } from 'lucide-react'
 
 type Mode = 'login' | 'register'
@@ -14,6 +14,7 @@ type Mode = 'login' | 'register'
 export default function AuthPage() {
   const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,10 +22,13 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
 
+  const nextPathRaw = searchParams.get('next') ?? '/home'
+  const nextPath = nextPathRaw.startsWith('/') ? nextPathRaw : '/home'
+
   const handleGoogleLogin = async () => {
     setLoading(true)
     try {
-      await signInWithGoogle()
+      await signInWithGoogle(nextPath)
     } catch {
       toast.error('Nie udało się zalogować przez Google.')
       setLoading(false)
@@ -38,7 +42,7 @@ export default function AuthPage() {
     try {
       if (mode === 'login') {
         await signInWithEmail(email.trim(), password)
-        router.push('/home')
+        router.push(nextPath)
         router.refresh()
       } else {
         await signUpWithEmail(email.trim(), password)

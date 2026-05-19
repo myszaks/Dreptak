@@ -15,20 +15,24 @@ import type { Profile } from '@/types/database'
 
 interface JoinClientProps {
   profile: Profile | null
+  initialCode?: string
 }
 
-export function JoinClient({ profile }: JoinClientProps) {
-  const [code, setCode] = useState('')
+export function JoinClient({ profile, initialCode }: JoinClientProps) {
+  const [code, setCode] = useState(initialCode?.toUpperCase() ?? '')
+  const [autoJoinDone, setAutoJoinDone] = useState(false)
   const joinChallenge = useJoinChallenge()
   const { setProfile, pushPermissionAsked, setShowPushPrompt } = useAppStore()
   const router = useRouter()
 
   useEffect(() => { if (profile) setProfile(profile) }, [profile, setProfile])
 
-  const handleJoin = async () => {
-    if (!code.trim()) return
+  const handleJoin = async (rawCode?: string) => {
+    const normalizedCode = (rawCode ?? code).trim().toUpperCase()
+    if (!normalizedCode) return
+
     try {
-      const challenge = await joinChallenge.mutateAsync(code.trim())
+      const challenge = await joinChallenge.mutateAsync(normalizedCode)
       toast.success(`🎉 Dołączyłeś/aś do "${challenge.name}"!`)
       // Trigger notification permission prompt after first join
       if (!pushPermissionAsked) setShowPushPrompt(true)
@@ -37,6 +41,15 @@ export function JoinClient({ profile }: JoinClientProps) {
       toast.error(err?.message ?? 'Błędny kod zaproszenia')
     }
   }
+
+  useEffect(() => {
+    if (!initialCode || autoJoinDone || joinChallenge.isPending) return
+    const normalizedCode = initialCode.trim().toUpperCase()
+    if (normalizedCode.length < 6) return
+    setCode(normalizedCode)
+    setAutoJoinDone(true)
+    void handleJoin(normalizedCode)
+  }, [initialCode, autoJoinDone, joinChallenge.isPending])
 
   return (
     <div className="page-container space-y-5">

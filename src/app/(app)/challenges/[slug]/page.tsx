@@ -19,13 +19,7 @@ export default async function ChallengeDetailPage({ params }: Props) {
   // Support both slug-based URLs (after migration) and UUID-based URLs (legacy / before migration)
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)
 
-  const selectQuery = `
-    *,
-    challenge_members (
-      id, user_id, role, joined_at,
-      profiles (id, username, avatar_url, total_steps)
-    )
-  `
+  const selectQuery = `*`
 
   const { data: challenge, error: challengeError } = isUuid
     ? await supabase.from('challenges').select(selectQuery).eq('id', slug).single()
@@ -38,34 +32,28 @@ export default async function ChallengeDetailPage({ params }: Props) {
     notFound()
   }
 
-  const challengeWithMembers = challenge as any
-
-  // Check membership — first try the embedded list, then fall back to a direct count
-  // (embedded select can return empty if RLS hasn't been fully migrated yet)
-  let isMember = challengeWithMembers.challenge_members?.some(
-    (m: any) => m.user_id === user.id
-  )
-
-  if (!isMember) {
-    const { count } = await supabase
-      .from('challenge_members')
-      .select('id', { count: 'exact', head: true })
-      .eq('challenge_id', challenge.id)
-      .eq('user_id', user.id)
-    isMember = (count ?? 0) > 0
-  }
+  const { count } = await supabase
+    .from('challenge_members')
+    .select('id', { count: 'exact', head: true })
+    .eq('challenge_id', challenge.id)
+    .eq('user_id', user.id)
+  const isMember = (count ?? 0) > 0
 
   if (!isMember) redirect('/challenges')
 
-  // Get actual member count via SECURITY DEFINER RPC (after fix_rls_recursion.sql,
-  // embedded challenge_members only returns the current user's row)
-  const { data: statsRows } = await supabase
-    .rpc('get_challenge_stats', { p_challenge_id: challenge.id })
-  const memberCount = Number((statsRows as any)?.[0]?.member_count ?? challengeWithMembers.challenge_members?.length ?? 0)
+  // Get actual member count via SECURITY DEFINER RPC (same source as list/home)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: countRows } = await (supabase as any).rpc('challenge_member_counts', {
+    p_challenge_ids: [challenge.id],
+  })
+  const rpcCount = Number((countRows as Array<{ member_count: number }> | null)?.[0]?.member_count ?? 0)
+  const memberCount = Number.isFinite(rpcCount) && rpcCount > 0
+    ? rpcCount
+    : Number(count ?? 1)
 
   return (
     <ChallengeDetailClient
-      challenge={challengeWithMembers}
+      challenge={challenge as any}
       currentUserId={user.id}
       profile={profile as any}
       memberCount={memberCount}

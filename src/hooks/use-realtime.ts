@@ -35,7 +35,18 @@ export function useRealtimeLeaderboard(challengeId: string) {
           schema: 'public',
           table: 'reactions',
         },
-        () => {
+        (payload) => {
+          const entryId =
+            (payload.new as { entry_id?: string } | null)?.entry_id
+            ?? (payload.old as { entry_id?: string } | null)?.entry_id
+
+          if (entryId) {
+            const cachedEntries = queryClient.getQueryData<Array<{ id: string }>>(['step-entries', challengeId])
+            if (cachedEntries && !cachedEntries.some((entry) => entry.id === entryId)) {
+              return
+            }
+          }
+
           queryClient.invalidateQueries({ queryKey: ['step-entries', challengeId] })
         }
       )
