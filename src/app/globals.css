@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 95%;
+    --card: 240 10% 7%;
+    --card-foreground: 0 0% 95%;
+    --popover: 240 10% 7%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 213 100% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 14%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 240 5% 14%;
+    --muted-foreground: 240 5% 55%;
+    --accent: 240 5% 14%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 5% 15%;
+    --input: 240 5% 15%;
+    --ring: 213 100% 60%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    overscroll-behavior: none;
+  }
+
+  /* Safe area support */
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-pl {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-area-pr {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Page container with bottom nav offset */
+  .page-container {
+    @apply pb-24 pt-4 px-4 min-h-screen;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 5rem);
+  }
+
+  /* Sticky header */
+  .sticky-header {
+    @apply sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-white/5;
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent;
+  }
+
+  /* Glassmorphism card */
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl;
+  }
+
+  /* Shimmer skeleton */
+  .skeleton {
+    @apply relative overflow-hidden bg-white/5 rounded-2xl;
+  }
+
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.06),
+      transparent
+    );
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-white/20 rounded-full;
+  }
+
+  /* Improve tap targets */
+  button,
+  a {
+    touch-action: manipulation;
+  }
+
+  /* Number font smoothing */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Neon glow utilities */
+  .neon-glow-blue {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5), 0 0 30px rgba(59, 130, 246, 0.2);
+  }
+
+  .neon-glow-violet {
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.5), 0 0 30px rgba(139, 92, 246, 0.2);
+  }
+
+  /* Input date styling for dark mode */
+  input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.5;
+  }
+}
+
+@layer utilities {
+  .flex-2 {
+    flex: 2;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Mobile safe viewport */
+  .min-h-dvh {
+    min-height: 100dvh;
+  }
+
+  .h-dvh {
+    height: 100dvh;
+  }
+}

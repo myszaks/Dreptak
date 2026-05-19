@@ -1,0 +1,9 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "&": true,
+        "/^node -e \"console\\.log\\(require\\('\\./node_modules/tailwindcss/package\\.json'\\)\\.version\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "Dreptak",
+  "short_name": "Dreptak",
+  "description": "Rywalizuj ze znajomymi na kroki",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0a0a0f",
+  "background_color": "#0a0a0f",
+  "lang": "pl",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["fitness", "social"],
+  "shortcuts": [
+    {
+      "name": "Dodaj kroki",
+      "url": "/upload",
+      "description": "Dodaj dzisiejsze kroki"
+    },
+    {
+      "name": "Ranking",
+      "url": "/challenges",
+      "description": "Sprawdź ranking"
+    }
+  ]
+}
