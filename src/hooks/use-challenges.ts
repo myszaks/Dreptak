@@ -18,6 +18,7 @@ export function useChallenges() {
     queryFn: async () => {
       const profile = useAppStore.getState().profile
       if (!profile) throw new Error('Not authenticated')
+      console.log('[SUPABASE][CHALLENGES] start fetch', { userId: profile.id })
       const { data, error } = await supabase
         .from('challenge_members')
         .select(`
@@ -31,7 +32,11 @@ export function useChallenges() {
         .eq('user_id', profile.id)
         .order('joined_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('[SUPABASE][CHALLENGES] error', { code: error.code, message: error.message, details: error.details, hint: error.hint })
+        throw error
+      }
+      console.log('[SUPABASE][CHALLENGES] success', { count: data?.length ?? 0 })
       return data
     },
   })

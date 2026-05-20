@@ -62,7 +62,7 @@ export function ActivityFeed({ challengeId }: ActivityFeedProps) {
 
   useRealtimeActivityFeed(challengeId, handleNewItem)
 
-  const { data: feedItems, isLoading } = useQuery({
+  const { data: feedItems, isLoading, isError } = useQuery({
     queryKey: ['activity-feed', challengeId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -93,6 +93,15 @@ export function ActivityFeed({ challengeId }: ActivityFeedProps) {
             </div>
           </div>
         ))}
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-10">
+        <p className="text-3xl">⚠️</p>
+        <p className="text-sm text-muted-foreground mt-2">Nie udało się załadować aktywności.</p>
       </div>
     )
   }
