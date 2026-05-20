@@ -62,7 +62,6 @@ export function useAuth() {
           // a normal background refresh and always carries a valid session.
           if (event === 'SIGNED_OUT') {
             console.log('[AUTH] SIGNED_OUT — redirecting to /auth')
-            await supabase.auth.signOut()
             router.replace('/auth')
           }
         }
