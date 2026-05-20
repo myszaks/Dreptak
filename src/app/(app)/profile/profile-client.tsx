@@ -38,8 +38,12 @@ export function ProfileClient({ profile, achievements, totalChallenges }: Profil
 
   if (!profile) {
     return (
-      <div className="page-container flex items-center justify-center">
-        <p className="text-muted-foreground">Ładowanie profilu...</p>
+      <div className="page-container flex flex-col items-center justify-center gap-4">
+        <p className="text-4xl">😕</p>
+        <div className="text-center">
+          <p className="font-bold">Nie udało się załadować profilu</p>
+          <p className="text-sm text-muted-foreground">Spróbuj odświeżyć stronę</p>
+        </div>
       </div>
     )
   }

@@ -59,10 +59,11 @@ export function useRealtimeLeaderboard(challengeId: string) {
 }
 
 export function useRealtimeActivityFeed(challengeId: string, onNewItem: () => void) {
-  const supabase = createClient()
+  const supabaseRef = useRef(createClient())
 
   useEffect(() => {
     if (!challengeId) return
+    const supabase = supabaseRef.current
 
     const channel = supabase
       .channel(`feed:${challengeId}`)
@@ -81,14 +82,15 @@ export function useRealtimeActivityFeed(challengeId: string, onNewItem: () => vo
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [challengeId, onNewItem, supabase])
+  }, [challengeId, onNewItem])
 }
 
 export function useRealtimeNotifications(userId: string, onNew: () => void) {
-  const supabase = createClient()
+  const supabaseRef = useRef(createClient())
 
   useEffect(() => {
     if (!userId) return
+    const supabase = supabaseRef.current
 
     const channel = supabase
       .channel(`notifications:${userId}`)
@@ -107,5 +109,5 @@ export function useRealtimeNotifications(userId: string, onNew: () => void) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [userId, onNew, supabase])
+  }, [userId, onNew])
 }

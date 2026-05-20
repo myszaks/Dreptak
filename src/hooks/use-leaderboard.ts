@@ -17,6 +17,7 @@ export function useChallengeLeaderboard(challengeId: string) {
     queryFn: async (): Promise<LeaderboardEntry[]> => {
       // Query step_entries directly + aggregate in JS.
       // Avoids the challenge_leaderboard view which can hang due to RLS/permission issues.
+      console.log('[SUPABASE][LEADERBOARD] start fetch', { challengeId })
       const { data, error } = await withTimeout(
         supabase
           .from('step_entries')
@@ -26,7 +27,11 @@ export function useChallengeLeaderboard(challengeId: string) {
         'Przekroczono czas ładowania rankingu'
       )
 
-      if (error) throw error
+      if (error) {
+        console.error('[SUPABASE][LEADERBOARD] error', { challengeId, code: error.code, message: error.message, details: error.details, hint: error.hint })
+        throw error
+      }
+      console.log('[SUPABASE][LEADERBOARD] success', { challengeId, rows: data?.length ?? 0 })
 
       // Aggregate per user
       const userMap = new Map<string, {
@@ -105,6 +110,7 @@ export function useStepEntries(challengeId: string) {
     queryKey: ['step-entries', challengeId],
     enabled: !!challengeId,
     queryFn: async () => {
+      console.log('[SUPABASE][STEP-ENTRIES] start fetch', { challengeId })
       const { data, error } = await withTimeout(
         supabase
           .from('step_entries')
@@ -120,7 +126,11 @@ export function useStepEntries(challengeId: string) {
         'Przekroczono czas ładowania wpisów'
       )
 
-      if (error) throw error
+      if (error) {
+        console.error('[SUPABASE][STEP-ENTRIES] error', { challengeId, code: error.code, message: error.message, details: error.details, hint: error.hint })
+        throw error
+      }
+      console.log('[SUPABASE][STEP-ENTRIES] success', { challengeId, rows: data?.length ?? 0 })
       return data
     },
   })
