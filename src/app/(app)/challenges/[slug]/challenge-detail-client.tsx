@@ -51,7 +51,7 @@ export function ChallengeDetailClient({ challenge, currentUserId, profile: profi
 
   const today = new Date().toISOString().split('T')[0]
   const hasSubmittedToday = entries?.some(
-    (e) => e.user_id === currentUserId && e.entry_date === today
+    (e: { user_id: string; entry_date: string }) => e.user_id === currentUserId && e.entry_date === today
   )
 
   const roasts = leaderboard

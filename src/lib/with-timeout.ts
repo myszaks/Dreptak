@@ -1,5 +1,5 @@
 export async function withTimeout<T>(
-  promise: Promise<T>,
+  promise: Promise<T> | PromiseLike<T>,
   timeoutMs: number,
   timeoutMessage = 'Przekroczono limit czasu żądania'
 ): Promise<T> {

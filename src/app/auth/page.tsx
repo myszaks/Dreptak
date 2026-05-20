@@ -4,14 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { toast } from 'sonner'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Mail } from 'lucide-react'
 
 type Mode = 'login' | 'register'
 
-export default function AuthPage() {
+function AuthContent() {
   const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -228,5 +228,13 @@ export default function AuthPage() {
         </p>
       </motion.div>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense>
+      <AuthContent />
+    </Suspense>
   )
 }

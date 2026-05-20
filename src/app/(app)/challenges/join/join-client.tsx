@@ -88,7 +88,7 @@ export function JoinClient({ profile, initialCode }: JoinClientProps) {
               className="w-full"
               variant="gradient"
               size="lg"
-              onClick={handleJoin}
+              onClick={() => handleJoin()}
               loading={joinChallenge.isPending}
               disabled={code.length < 6}
             >
