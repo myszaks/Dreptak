@@ -4,6 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store/app-store'
 import type { Challenge, ChallengeWithMembers } from '@/types/database'
+import { withTimeout } from '@/lib/with-timeout'
+
+const DB_TIMEOUT_MS = 12_000
 
 export function useChallenges() {
   const supabase = createClient()
@@ -77,42 +80,102 @@ export function useJoinChallenge() {
       if (!profile) throw new Error('Musisz być zalogowany')
 
       // Find challenge by invite code
-      const { data: challenge, error: findErr } = await supabase
-        .from('challenges')
-        .select('id, name, slug')
-        .eq('invite_code', inviteCode.toUpperCase())
-        .single()
+      const { data: challenge, error: findErr } = await withTimeout(
+        supabase
+          .from('challenges')
+          .select('id, name, slug, start_date, end_date')
+          .eq('invite_code', inviteCode.toUpperCase())
+          .single(),
+        DB_TIMEOUT_MS,
+        'Przekroczono czas wyszukiwania wyzwania'
+      )
 
       if (findErr) throw new Error('Nie znaleziono wyzwania z tym kodem.')
 
       // Check if already member
-      const { data: existing } = await supabase
-        .from('challenge_members')
-        .select('id')
-        .eq('challenge_id', challenge.id)
-        .eq('user_id', profile.id)
-        .single()
+      const { data: existing, error: existingErr } = await withTimeout(
+        supabase
+          .from('challenge_members')
+          .select('id')
+          .eq('challenge_id', challenge.id)
+          .eq('user_id', profile.id)
+          .maybeSingle(),
+        DB_TIMEOUT_MS,
+        'Przekroczono czas sprawdzania członkostwa'
+      )
+
+      if (existingErr) throw existingErr
 
       if (existing) return challenge
 
       // Join
-      const { error: joinErr } = await supabase
-        .from('challenge_members')
-        .insert({ challenge_id: challenge.id, user_id: profile.id })
+      const { error: joinErr } = await withTimeout(
+        supabase
+          .from('challenge_members')
+          .insert({ challenge_id: challenge.id, user_id: profile.id }),
+        DB_TIMEOUT_MS,
+        'Przekroczono czas dołączania do wyzwania'
+      )
 
       if (joinErr) throw joinErr
 
+      // Backfill historycznych wpisów użytkownika dla zakresu dat wyzwania
+      const { data: existingEntries, error: entriesErr } = await withTimeout(
+        supabase
+          .from('step_entries')
+          .select('entry_date, step_count')
+          .eq('user_id', profile.id)
+          .gte('entry_date', challenge.start_date)
+          .lte('entry_date', challenge.end_date)
+          .order('entry_date', { ascending: true }),
+        DB_TIMEOUT_MS,
+        'Przekroczono czas pobierania historii kroków'
+      )
+      if (entriesErr) throw entriesErr
+
+      const dailyMax = new Map<string, number>()
+      for (const row of existingEntries ?? []) {
+        const prev = dailyMax.get(row.entry_date) ?? 0
+        if (row.step_count > prev) dailyMax.set(row.entry_date, row.step_count)
+      }
+
+      if (dailyMax.size > 0) {
+        const rows = Array.from(dailyMax.entries()).map(([entry_date, step_count]) => ({
+          challenge_id: challenge.id,
+          user_id: profile.id,
+          entry_date,
+          step_count,
+          is_edited: false,
+        }))
+
+        const { error: backfillErr } = await withTimeout(
+          supabase
+            .from('step_entries')
+            .upsert(rows, { onConflict: 'challenge_id,user_id,entry_date' }),
+          DB_TIMEOUT_MS,
+          'Przekroczono czas uzupełniania historii kroków'
+        )
+        if (backfillErr) throw backfillErr
+      }
+
       // Create activity feed item
-      await supabase.from('activity_feed').insert({
-        challenge_id: challenge.id,
-        type: 'member_joined',
-        actor_id: profile.id,
-      })
+      const { error: feedErr } = await withTimeout(
+        supabase.from('activity_feed').insert({
+          challenge_id: challenge.id,
+          type: 'member_joined',
+          actor_id: profile.id,
+        }),
+        DB_TIMEOUT_MS,
+        'Przekroczono czas zapisu aktywności'
+      )
+      if (feedErr) throw feedErr
 
       return challenge
     },
-    onSuccess: () => {
+    onSuccess: (challenge) => {
       queryClient.invalidateQueries({ queryKey: ['challenges'] })
+      queryClient.invalidateQueries({ queryKey: ['challenge-member-count', challenge.id] })
+      queryClient.invalidateQueries({ queryKey: ['home-member-counts'] })
     },
   })
 }
@@ -136,17 +199,17 @@ export function useCreateChallenge() {
       if (!profile) throw new Error('Musisz być zalogowany')
 
       const id = crypto.randomUUID()
-      // Abort po 12 sekundach — zapobiega wiecznym spinneram na słabej sieci
-      const signal = AbortSignal.timeout(12_000)
-
-      const { error: insertError } = await supabase
-        .from('challenges')
-        .insert({
-          id,
-          ...input,
-          created_by: profile.id,
-        })
-        .abortSignal(signal)
+      const { error: insertError } = await withTimeout(
+        supabase
+          .from('challenges')
+          .insert({
+            id,
+            ...input,
+            created_by: profile.id,
+          }),
+        DB_TIMEOUT_MS,
+        'Przekroczono czas tworzenia wyzwania'
+      )
 
       if (insertError) {
         console.error('[createChallenge insert]', insertError)
@@ -155,23 +218,32 @@ export function useCreateChallenge() {
 
       // Drugorzędne inserty — równolegle, nie blokują głównego flow
       await Promise.allSettled([
-        supabase
-          .from('challenge_members')
-          .insert({ challenge_id: id, user_id: profile.id, role: 'admin' })
-          .abortSignal(signal),
-        supabase
-          .from('activity_feed')
-          .insert({ challenge_id: id, type: 'challenge_started', actor_id: profile.id })
-          .abortSignal(signal),
+        withTimeout(
+          supabase
+            .from('challenge_members')
+            .insert({ challenge_id: id, user_id: profile.id, role: 'admin' }),
+          DB_TIMEOUT_MS,
+          'Przekroczono czas dodawania członkostwa'
+        ),
+        withTimeout(
+          supabase
+            .from('activity_feed')
+            .insert({ challenge_id: id, type: 'challenge_started', actor_id: profile.id }),
+          DB_TIMEOUT_MS,
+          'Przekroczono czas zapisu aktywności'
+        ),
       ])
 
       // Pobierz slug wygenerowany przez trigger
-      const { data: created } = await supabase
-        .from('challenges')
-        .select('slug')
-        .eq('id', id)
-        .single()
-        .abortSignal(signal)
+      const { data: created } = await withTimeout(
+        supabase
+          .from('challenges')
+          .select('slug')
+          .eq('id', id)
+          .single(),
+        DB_TIMEOUT_MS,
+        'Przekroczono czas pobierania nowego wyzwania'
+      )
 
       return { id, slug: created?.slug ?? id }
     },

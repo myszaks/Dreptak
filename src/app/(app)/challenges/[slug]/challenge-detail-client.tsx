@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Share2, Upload as UploadIcon } from 'lucide-react'
 import Link from 'next/link'
@@ -22,19 +23,11 @@ import { formatDate } from '@/lib/utils'
 import type { Challenge, Profile } from '@/types/database'
 import { toast } from 'sonner'
 import { generateInviteUrl } from '@/lib/utils'
-
-interface ChallengeWithMembers extends Challenge {
-  challenge_members: Array<{
-    id: string
-    user_id: string
-    role: string
-    joined_at: string
-    profiles: { id: string; username: string; avatar_url: string | null; total_steps: number }
-  }>
-}
+import { createClient } from '@/lib/supabase/client'
+import { useRef } from 'react'
 
 interface ChallengeDetailClientProps {
-  challenge: ChallengeWithMembers
+  challenge: Challenge
   currentUserId: string
   profile: Profile | null
   memberCount: number
@@ -43,6 +36,8 @@ interface ChallengeDetailClientProps {
 export function ChallengeDetailClient({ challenge, currentUserId, profile: profileProp, memberCount }: ChallengeDetailClientProps) {
   const [uploadOpen, setUploadOpen] = useState(false)
   const { profile, setProfile } = useAppStore()
+  const queryClient = useQueryClient()
+  const supabaseRef = useRef(createClient())
   useEffect(() => { if (profileProp) setProfile(profileProp) }, [profileProp, setProfile])
 
   const { data: leaderboard, isLoading: lbLoading, isError: lbError, refetch: refetchLb } = useChallengeLeaderboard(challenge.id)
@@ -65,6 +60,43 @@ export function ChallengeDetailClient({ challenge, currentUserId, profile: profi
         leaderboard.length
       )
     : []
+
+  const { data: liveMemberCount } = useQuery({
+    queryKey: ['challenge-member-count', challenge.id],
+    initialData: memberCount,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabaseRef.current as any)
+        .rpc('challenge_member_counts', { p_challenge_ids: [challenge.id] })
+      if (error) throw error
+      const count = Number((data as Array<{ member_count: number }> | null)?.[0]?.member_count ?? memberCount)
+      return Number.isFinite(count) ? count : memberCount
+    },
+    refetchInterval: 30_000,
+  })
+
+  useEffect(() => {
+    const supabase = supabaseRef.current
+    const channel = supabase
+      .channel(`challenge:members:${challenge.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'challenge_members',
+          filter: `challenge_id=eq.${challenge.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['challenge-member-count', challenge.id] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [challenge.id, queryClient])
 
   const handleShare = async () => {
     const url = generateInviteUrl(challenge.invite_code)
@@ -99,7 +131,7 @@ export function ChallengeDetailClient({ challenge, currentUserId, profile: profi
             <p className="text-xs text-muted-foreground">
               {formatDate(challenge.start_date)} – {formatDate(challenge.end_date)}
               {' · '}
-              {memberCount} uczest.
+              {liveMemberCount ?? memberCount} uczest.
             </p>
           </div>
           <Button variant="ghost" size="icon-sm" onClick={handleShare}>

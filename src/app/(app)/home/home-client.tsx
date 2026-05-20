@@ -10,7 +10,9 @@ import { Badge } from '@/components/ui/badge'
 import { formatSteps, formatDate } from '@/lib/utils'
 import type { Profile, Challenge } from '@/types/database'
 import { useAppStore } from '@/store/app-store'
-import { useEffect } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { createClient } from '@/lib/supabase/client'
 
 interface TodayEntry {
   step_count: number
@@ -19,16 +21,66 @@ interface TodayEntry {
 
 interface HomeClientProps {
   profile: Profile | null
-  activeChallenges: Array<Challenge & { challenge_members: Array<{ count: number }> }>
+  activeChallenges: Challenge[]
+  memberCounts: Record<string, number>
   todayEntry: TodayEntry | null
 }
 
-export function HomeClient({ profile, activeChallenges, todayEntry }: HomeClientProps) {
+export function HomeClient({ profile, activeChallenges, memberCounts, todayEntry }: HomeClientProps) {
   const { setProfile } = useAppStore()
+  const queryClient = useQueryClient()
+  const supabaseRef = useRef(createClient())
+
+  const challengeIds = useMemo(
+    () => activeChallenges.map((c) => c.id).filter(Boolean),
+    [activeChallenges]
+  )
 
   useEffect(() => {
     if (profile) setProfile(profile)
   }, [profile, setProfile])
+
+  const { data: liveMemberCounts } = useQuery({
+    queryKey: ['home-member-counts', challengeIds],
+    enabled: challengeIds.length > 0,
+    initialData: memberCounts,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const supabase = supabaseRef.current as any
+      const { data, error } = await supabase.rpc('challenge_member_counts', { p_challenge_ids: challengeIds })
+      if (error) throw error
+      const counts: Record<string, number> = {}
+      for (const row of (data ?? []) as Array<{ challenge_id: string; member_count: number }>) {
+        counts[row.challenge_id] = Number(row.member_count)
+      }
+      return counts
+    },
+    refetchInterval: 30_000,
+  })
+
+  useEffect(() => {
+    if (challengeIds.length === 0) return
+    const watched = new Set(challengeIds)
+    const supabase = supabaseRef.current
+    const channel = supabase
+      .channel('home:member-counts')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'challenge_members' },
+        (payload) => {
+          const challengeId = (payload.new as { challenge_id?: string } | null)?.challenge_id
+            ?? (payload.old as { challenge_id?: string } | null)?.challenge_id
+          if (challengeId && watched.has(challengeId)) {
+            queryClient.invalidateQueries({ queryKey: ['home-member-counts'] })
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [challengeIds, queryClient])
 
   const today = new Date()
   const hour = today.getHours()
@@ -171,10 +223,7 @@ export function HomeClient({ profile, activeChallenges, todayEntry }: HomeClient
                         </p>
                       </div>
                       <Badge variant="secondary" className="text-xs shrink-0">
-                        {Array.isArray(challenge.challenge_members)
-                          ? challenge.challenge_members[0]?.count ?? '?'
-                          : '?'}{' '}
-                        os.
+                        {liveMemberCounts?.[challenge.id] ?? memberCounts[challenge.id] ?? 0} os.
                       </Badge>
                     </CardContent>
                   </Card>

@@ -4,6 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store/app-store'
 import type { LeaderboardEntry, DailyLeaderboardEntry } from '@/types/database'
+import { withTimeout } from '@/lib/with-timeout'
+
+const DB_TIMEOUT_MS = 12_000
 
 export function useChallengeLeaderboard(challengeId: string) {
   const supabase = createClient()
@@ -11,15 +14,17 @@ export function useChallengeLeaderboard(challengeId: string) {
   return useQuery({
     queryKey: ['leaderboard', challengeId],
     enabled: !!challengeId,
-    refetchOnMount: 'always',
-    queryFn: async ({ signal }): Promise<LeaderboardEntry[]> => {
+    queryFn: async (): Promise<LeaderboardEntry[]> => {
       // Query step_entries directly + aggregate in JS.
       // Avoids the challenge_leaderboard view which can hang due to RLS/permission issues.
-      const { data, error } = await supabase
-        .from('step_entries')
-        .select('user_id, step_count, entry_date, profiles(username, avatar_url)')
-        .eq('challenge_id', challengeId)
-        .abortSignal(signal)
+      const { data, error } = await withTimeout(
+        supabase
+          .from('step_entries')
+          .select('user_id, step_count, entry_date, profiles(username, avatar_url)')
+          .eq('challenge_id', challengeId),
+        DB_TIMEOUT_MS,
+        'Przekroczono czas ładowania rankingu'
+      )
 
       if (error) throw error
 
@@ -99,19 +104,21 @@ export function useStepEntries(challengeId: string) {
   return useQuery({
     queryKey: ['step-entries', challengeId],
     enabled: !!challengeId,
-    refetchOnMount: 'always',
-    queryFn: async ({ signal }) => {
-      const { data, error } = await supabase
-        .from('step_entries')
-        .select(`
-          *,
-          profiles (username, avatar_url),
-          reactions (*)
-        `)
-        .eq('challenge_id', challengeId)
-        .order('entry_date', { ascending: false })
-        .order('step_count', { ascending: false })
-        .abortSignal(signal)
+    queryFn: async () => {
+      const { data, error } = await withTimeout(
+        supabase
+          .from('step_entries')
+          .select(`
+            *,
+            profiles (username, avatar_url),
+            reactions (*)
+          `)
+          .eq('challenge_id', challengeId)
+          .order('entry_date', { ascending: false })
+          .order('step_count', { ascending: false }),
+        DB_TIMEOUT_MS,
+        'Przekroczono czas ładowania wpisów'
+      )
 
       if (error) throw error
       return data
@@ -142,10 +149,14 @@ export function useSubmitSteps() {
         activeChallengeIds = input.activeChallengeIds
       } else {
         const today = new Date()
-        const { data: memberships, error: memberErr } = await supabase
-          .from('challenge_members')
-          .select('challenge_id, challenges!inner(start_date, end_date)')
-          .eq('user_id', profile.id)
+        const { data: memberships, error: memberErr } = await withTimeout(
+          supabase
+            .from('challenge_members')
+            .select('challenge_id, challenges!inner(start_date, end_date)')
+            .eq('user_id', profile.id),
+          DB_TIMEOUT_MS,
+          'Przekroczono czas pobierania aktywnych wyzwań'
+        )
         if (memberErr) throw new Error(memberErr.message)
         activeChallengeIds = (memberships ?? [])
           .filter((m: any) => {
@@ -160,13 +171,18 @@ export function useSubmitSteps() {
       }
 
       // Check daily limit — query with a known challenge_id to satisfy RLS via index
-      const { data: existing } = await supabase
-        .from('step_entries')
-        .select('id, edit_expires_at')
-        .eq('challenge_id', activeChallengeIds[0])
-        .eq('user_id', profile.id)
-        .eq('entry_date', input.entryDate)
-        .maybeSingle()
+      const { data: existing, error: existingErr } = await withTimeout(
+        supabase
+          .from('step_entries')
+          .select('id, edit_expires_at')
+          .eq('challenge_id', activeChallengeIds[0])
+          .eq('user_id', profile.id)
+          .eq('entry_date', input.entryDate)
+          .maybeSingle(),
+        DB_TIMEOUT_MS,
+        'Przekroczono czas sprawdzania dzisiejszego wpisu'
+      )
+      if (existingErr) throw new Error(existingErr.message)
 
       if (existing) {
         const canEdit =
@@ -194,9 +210,13 @@ export function useSubmitSteps() {
       }))
 
       // Bulk upsert to all active challenges — no .select() to avoid RLS recursion
-      const { error } = await supabase
-        .from('step_entries')
-        .upsert(entries, { onConflict: 'challenge_id,user_id,entry_date' })
+      const { error } = await withTimeout(
+        supabase
+          .from('step_entries')
+          .upsert(entries, { onConflict: 'challenge_id,user_id,entry_date' }),
+        DB_TIMEOUT_MS,
+        'Przekroczono czas zapisu kroków'
+      )
 
       if (error) throw new Error(error.message || 'Błąd podczas zapisywania kroków')
 
