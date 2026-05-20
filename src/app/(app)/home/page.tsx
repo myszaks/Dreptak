@@ -33,13 +33,38 @@ export default async function HomePage() {
     }) ?? []
 
   const challengeIds = activeChallenges.map((c: any) => c.id).filter(Boolean) as string[]
-  const { data: memberCountRows } = challengeIds.length > 0
+  const { data: memberCountRows, error: memberCountError } = challengeIds.length > 0
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ? await (supabase as any).rpc('challenge_member_counts', { p_challenge_ids: challengeIds })
-    : { data: [] }
+    : { data: [], error: null }
+
+  let resolvedMemberCountRows = (memberCountRows ?? []) as Array<{ challenge_id: string; member_count: number }>
+
+  if (challengeIds.length > 0 && memberCountError) {
+    console.error('Failed to load challenge member counts via RPC, falling back to challenge_members query.', memberCountError)
+
+    const { data: fallbackMemberRows, error: fallbackMemberCountError } = await supabase
+      .from('challenge_members')
+      .select('challenge_id')
+      .in('challenge_id', challengeIds)
+
+    if (fallbackMemberCountError) {
+      throw fallbackMemberCountError
+    }
+
+    const fallbackCounts: Record<string, number> = {}
+    for (const row of (fallbackMemberRows ?? []) as Array<{ challenge_id: string }>) {
+      fallbackCounts[row.challenge_id] = (fallbackCounts[row.challenge_id] ?? 0) + 1
+    }
+
+    resolvedMemberCountRows = Object.entries(fallbackCounts).map(([challenge_id, member_count]) => ({
+      challenge_id,
+      member_count,
+    }))
+  }
 
   const memberCounts: Record<string, number> = {}
-  for (const row of (memberCountRows ?? []) as Array<{ challenge_id: string; member_count: number }>) {
+  for (const row of resolvedMemberCountRows) {
     memberCounts[row.challenge_id] = Number(row.member_count)
   }
 

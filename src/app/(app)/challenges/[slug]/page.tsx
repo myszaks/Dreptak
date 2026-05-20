@@ -43,13 +43,16 @@ export default async function ChallengeDetailPage({ params }: Props) {
 
   // Get actual member count via SECURITY DEFINER RPC (same source as list/home)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: countRows } = await (supabase as any).rpc('challenge_member_counts', {
+  const { data: countRows, error: memberCountError } = await (supabase as any).rpc('challenge_member_counts', {
     p_challenge_ids: [challenge.id],
   })
-  const rpcCount = Number((countRows as Array<{ member_count: number }> | null)?.[0]?.member_count ?? 0)
-  const memberCount = Number.isFinite(rpcCount) && rpcCount > 0
+  if (memberCountError) {
+    console.error('[challenge page] member count rpc error:', memberCountError.message)
+  }
+  const rpcCount = Number((countRows as Array<{ member_count: number }> | null)?.[0]?.member_count)
+  const memberCount = !memberCountError && Number.isFinite(rpcCount) && rpcCount >= 0
     ? rpcCount
-    : Number(count ?? 1)
+    : 0
 
   return (
     <ChallengeDetailClient
