@@ -8,7 +8,7 @@ import { getRelativeTime } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRealtimeActivityFeed } from '@/hooks/use-realtime'
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { formatSteps } from '@/lib/utils'
 import type { Json } from '@/types/database'
 
@@ -53,7 +53,8 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ challengeId }: ActivityFeedProps) {
-  const supabase = createClient()
+  // Stable ref — prevents creating a new Supabase client object on every render.
+  const supabaseRef = useRef(createClient())
   const queryClient = useQueryClient()
 
   const handleNewItem = useCallback(() => {
@@ -65,7 +66,7 @@ export function ActivityFeed({ challengeId }: ActivityFeedProps) {
   const { data: feedItems, isLoading, isError } = useQuery({
     queryKey: ['activity-feed', challengeId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseRef.current
         .from('activity_feed')
         .select(`
           *,

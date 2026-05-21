@@ -85,29 +85,7 @@ export function useRealtimeActivityFeed(challengeId: string, onNewItem: () => vo
   }, [challengeId, onNewItem])
 }
 
-export function useRealtimeNotifications(userId: string, onNew: () => void) {
-  const supabaseRef = useRef(createClient())
-
-  useEffect(() => {
-    if (!userId) return
-    const supabase = supabaseRef.current
-
-    const channel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        onNew
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [userId, onNew])
-}
+// useRealtimeNotifications was removed — notifications are handled exclusively
+// by useUnreadNotificationCount in NotificationsProvider, which already subscribes
+// to the same channel. Keeping two subscribers on the same channel caused
+// duplicate invalidations and unreliable cleanup.

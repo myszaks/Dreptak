@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import { Home, Trophy, Upload, Bell, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/app-store'
-import { motion } from 'framer-motion'
 
 const NAV_ITEMS = [
   { href: '/home', icon: Home, label: 'Home' },
@@ -30,12 +29,9 @@ export function BottomNav() {
             if (item.primary) {
               return (
                 <Link key={item.href} href={item.href} className="relative -mt-6">
-                  <motion.div
-                    whileTap={{ scale: 0.9 }}
-                    className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-xl shadow-blue-500/40"
-                  >
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-xl shadow-blue-500/40 active:scale-90 transition-transform duration-150">
                     <Icon className="w-6 h-6 text-white" strokeWidth={2.5} />
-                  </motion.div>
+                  </div>
                 </Link>
               )
             }
@@ -46,13 +42,25 @@ export function BottomNav() {
                 href={item.href}
                 className="relative flex flex-col items-center gap-0.5 px-3 py-2 min-w-[52px]"
               >
+                {/* Active indicator — uses transform (composited) */}
+                <span
+                  className={cn(
+                    'absolute -top-0.5 inset-x-0 mx-auto w-4 h-0.5 bg-primary rounded-full transition-opacity duration-200',
+                    isActive ? 'opacity-100' : 'opacity-0'
+                  )}
+                />
                 <div className="relative">
+                  {/* Two overlapping icons — transition via opacity (composited) */}
+                  <Icon
+                    className="w-6 h-6 text-muted-foreground"
+                    strokeWidth={1.5}
+                  />
                   <Icon
                     className={cn(
-                      'w-6 h-6 transition-colors duration-200',
-                      isActive ? 'text-primary' : 'text-muted-foreground'
+                      'w-6 h-6 text-primary absolute inset-0 transition-opacity duration-200',
+                      isActive ? 'opacity-100' : 'opacity-0'
                     )}
-                    strokeWidth={isActive ? 2.5 : 1.5}
+                    strokeWidth={2.5}
                   />
                   {item.href === '/notifications' && unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
@@ -60,20 +68,16 @@ export function BottomNav() {
                     </span>
                   )}
                 </div>
+                {/* Two overlapping labels — transition via opacity (composited) */}
+                <span className="text-[10px] font-semibold text-muted-foreground">{item.label}</span>
                 <span
                   className={cn(
-                    'text-[10px] font-semibold transition-colors duration-200',
-                    isActive ? 'text-primary' : 'text-muted-foreground'
+                    'text-[10px] font-semibold text-primary absolute bottom-2 transition-opacity duration-200',
+                    isActive ? 'opacity-100' : 'opacity-0'
                   )}
                 >
                   {item.label}
                 </span>
-                {isActive && (
-                  <motion.div
-                    layoutId="nav-indicator"
-                    className="absolute -top-0.5 inset-x-0 mx-auto w-4 h-0.5 bg-primary rounded-full"
-                  />
-                )}
               </Link>
             )
           })}
@@ -82,3 +86,4 @@ export function BottomNav() {
     </nav>
   )
 }
+ 

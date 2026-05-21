@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Settings, LogOut, Edit3, Trophy, Flame, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { UserAvatar } from '@/components/ui/avatar'
 import { useAuth } from '@/hooks/use-auth'
-import { useAppStore } from '@/store/app-store'
 import { formatSteps } from '@/lib/utils'
 import type { Profile, Achievement } from '@/types/database'
 import Link from 'next/link'
@@ -26,8 +25,6 @@ interface ProfileClientProps {
 
 export function ProfileClient({ profile, achievements, totalChallenges }: ProfileClientProps) {
   const { signOut } = useAuth()
-  const { setProfile } = useAppStore()
-  useEffect(() => { if (profile) setProfile(profile) }, [profile, setProfile])
 
   const handleSignOut = () => {
     // Session is cleared from cookies synchronously inside signOut();

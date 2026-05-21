@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,6 @@ import { toast } from 'sonner'
 import { Crown, Calendar, Globe, Lock, AlertCircle } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
-import { useAppStore } from '@/store/app-store'
 import type { Profile } from '@/types/database'
 
 const CHALLENGE_ICONS = ['🏃', '💪', '🔥', '⚡', '🚀', '🏆', '🎯', '👟', '🌟', '🦁']
@@ -36,12 +35,6 @@ export function CreateChallengeForm({ profile }: CreateChallengeFormProps) {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const createChallenge = useCreateChallenge()
   const router = useRouter()
-  const setProfile = useAppStore(s => s.setProfile)
-
-  // Inicjalizuj profil w store z danych server-side
-  useEffect(() => {
-    if (profile) setProfile(profile)
-  }, [profile, setProfile])
 
   const {
     register,

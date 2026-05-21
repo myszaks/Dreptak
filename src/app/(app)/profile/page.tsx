@@ -7,25 +7,22 @@ export default async function ProfilePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  const { data: userAchievements } = await supabase
-    .from('user_achievements')
-    .select(`
-      created_at,
-      achievements (*)
-    `)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-
-  const { data: challengeCount } = await supabase
-    .from('challenge_members')
-    .select('id', { count: 'exact' })
-    .eq('user_id', user.id)
+  const [
+    { data: profile },
+    { data: userAchievements },
+    { data: challengeCount },
+  ] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase
+      .from('user_achievements')
+      .select(`created_at, achievements (*)`)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('challenge_members')
+      .select('id', { count: 'exact' })
+      .eq('user_id', user.id),
+  ])
 
   return (
     <ProfileClient

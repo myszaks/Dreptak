@@ -25,13 +25,17 @@ export default function OnboardingPage() {
     setLoading(true)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      // Use the Supabase client only for the DB write. The user ID comes from
+      // the Supabase session stored in the browser — getSession() is safe here
+      // because this is a write path (not an auth gate); the middleware already
+      // validated the session server-side before rendering this page.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) throw new Error('Not authenticated')
 
       const { error } = await supabase
         .from('profiles')
         .upsert({
-          id: user.id,
+          id: session.user.id,
           username: username.trim(),
         })
 

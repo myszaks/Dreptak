@@ -9,7 +9,7 @@ import { UserAvatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { formatSteps, formatDate } from '@/lib/utils'
 import type { Profile, Challenge } from '@/types/database'
-import { useAppStore } from '@/store/app-store'
+
 import { useEffect, useMemo, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
@@ -27,7 +27,6 @@ interface HomeClientProps {
 }
 
 export function HomeClient({ profile, activeChallenges, memberCounts, todayEntry }: HomeClientProps) {
-  const { setProfile } = useAppStore()
   const queryClient = useQueryClient()
   const supabaseRef = useRef(createClient())
 
@@ -36,14 +35,14 @@ export function HomeClient({ profile, activeChallenges, memberCounts, todayEntry
     [activeChallenges]
   )
 
-  useEffect(() => {
-    if (profile) setProfile(profile)
-  }, [profile, setProfile])
-
   const { data: liveMemberCounts } = useQuery({
     queryKey: ['home-member-counts', challengeIds],
     enabled: challengeIds.length > 0,
     initialData: memberCounts,
+    // Mark the server-fetched data as fresh so React Query does not fire an
+    // immediate background refetch on mount.  Without this, initialData is
+    // treated as stale-at-zero and triggers a redundant network call.
+    initialDataUpdatedAt: Date.now(),
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const supabase = supabaseRef.current as any

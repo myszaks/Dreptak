@@ -6,7 +6,6 @@ import { Bell } from 'lucide-react'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { getRelativeTime } from '@/lib/utils'
-import { useAppStore } from '@/store/app-store'
 import { useNotifications, useMarkAllRead } from '@/hooks/use-notifications'
 import type { Notification, Profile } from '@/types/database'
 import { cn } from '@/lib/utils'
@@ -33,9 +32,6 @@ interface NotificationsClientProps {
 }
 
 export function NotificationsClient({ notifications: initial, profile }: NotificationsClientProps) {
-  const { setProfile } = useAppStore()
-  useEffect(() => { if (profile) setProfile(profile) }, [profile, setProfile])
-
   // Realtime list — falls back to SSR data while loading
   const { data: realtimeNotifs } = useNotifications(50)
   const notifications = realtimeNotifs ?? initial

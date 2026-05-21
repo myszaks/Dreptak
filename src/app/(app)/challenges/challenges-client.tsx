@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Plus, Search, QrCode } from 'lucide-react'
@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChallengeCard } from '@/components/challenge/challenge-card'
-import { useAppStore } from '@/store/app-store'
 import type { Challenge, Profile } from '@/types/database'
 
 interface Membership {
@@ -25,8 +24,6 @@ interface ChallengesClientProps {
 }
 
 export function ChallengesClient({ memberships, userId, profile, memberCounts }: ChallengesClientProps) {
-  const setProfile = useAppStore(s => s.setProfile)
-  useEffect(() => { if (profile) setProfile(profile) }, [profile, setProfile])
   const [search, setSearch] = useState('')
 
   const all = memberships

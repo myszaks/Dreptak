@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Share2, Upload as UploadIcon } from 'lucide-react'
@@ -9,22 +10,36 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Podium, LeaderboardRow } from '@/components/leaderboard/podium'
-import { StepEntryCard } from '@/components/challenge/step-entry-card'
-import { ActivityFeed } from '@/components/challenge/activity-feed'
-import { JanuszMode } from '@/components/challenge/janusz-mode'
 import { useChallengeLeaderboard, useStepEntries } from '@/hooks/use-leaderboard'
 import { useRealtimeLeaderboard } from '@/hooks/use-realtime'
 import { useAppStore } from '@/store/app-store'
 import { generateDailyRoast } from '@/lib/trash-talk'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { OCRUpload } from '@/components/upload/ocr-upload'
 import { formatDate } from '@/lib/utils'
 import type { Challenge, Profile } from '@/types/database'
 import { toast } from 'sonner'
 import { generateInviteUrl } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useRef } from 'react'
+
+const Podium = dynamic(() => import('@/components/leaderboard/podium').then(m => m.Podium), {
+  loading: () => <Skeleton className="h-48 w-full" />,
+  ssr: false,
+})
+const LeaderboardRow = dynamic(() => import('@/components/leaderboard/podium').then(m => m.LeaderboardRow), { ssr: false })
+const StepEntryCard = dynamic(() => import('@/components/challenge/step-entry-card').then(m => m.StepEntryCard), {
+  loading: () => <Skeleton className="h-24 w-full" />,
+  ssr: false,
+})
+const ActivityFeed = dynamic(() => import('@/components/challenge/activity-feed').then(m => m.ActivityFeed), {
+  loading: () => <Skeleton className="h-32 w-full" />,
+  ssr: false,
+})
+const JanuszMode = dynamic(() => import('@/components/challenge/janusz-mode').then(m => m.JanuszMode), { ssr: false })
+const OCRUpload = dynamic(() => import('@/components/upload/ocr-upload').then(m => m.OCRUpload), {
+  loading: () => <Skeleton className="h-48 w-full" />,
+  ssr: false,
+})
 
 interface ChallengeDetailClientProps {
   challenge: Challenge
@@ -35,10 +50,9 @@ interface ChallengeDetailClientProps {
 
 export function ChallengeDetailClient({ challenge, currentUserId, profile: profileProp, memberCount }: ChallengeDetailClientProps) {
   const [uploadOpen, setUploadOpen] = useState(false)
-  const { profile, setProfile } = useAppStore()
+  const { profile } = useAppStore()
   const queryClient = useQueryClient()
   const supabaseRef = useRef(createClient())
-  useEffect(() => { if (profileProp) setProfile(profileProp) }, [profileProp, setProfile])
 
   const { data: leaderboard, isLoading: lbLoading, isError: lbError, refetch: refetchLb } = useChallengeLeaderboard(challenge.id)
   const { data: entries, isLoading: entriesLoading } = useStepEntries(challenge.id)
@@ -64,6 +78,9 @@ export function ChallengeDetailClient({ challenge, currentUserId, profile: profi
   const { data: liveMemberCount } = useQuery({
     queryKey: ['challenge-member-count', challenge.id],
     initialData: memberCount,
+    // Mark the server-fetched data as fresh to suppress the immediate
+    // background refetch that initialData triggers by default.
+    initialDataUpdatedAt: Date.now(),
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabaseRef.current as any)

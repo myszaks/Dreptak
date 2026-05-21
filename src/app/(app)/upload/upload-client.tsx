@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Camera, Pencil, CheckCircle2, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { OCRUpload } from '@/components/upload/ocr-upload'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,6 +16,11 @@ import { useScreenshotAttempts, MAX_SCREENSHOT_ATTEMPTS } from '@/hooks/use-scre
 import { formatSteps } from '@/lib/utils'
 import type { Challenge, Profile } from '@/types/database'
 import { toast } from 'sonner'
+
+const OCRUpload = dynamic(() => import('@/components/upload/ocr-upload').then(m => m.OCRUpload), {
+  loading: () => <Skeleton className="h-48 w-full" />,
+  ssr: false,
+})
 
 type Mode = 'screenshot' | 'manual'
 
@@ -30,11 +36,9 @@ interface UploadClientProps {
 }
 
 export function UploadClient({ activeChallenges, profile, todayEntry }: UploadClientProps) {
-  const setProfile            = useAppStore(s => s.setProfile)
   const pushPermissionAsked   = useAppStore(s => s.pushPermissionAsked)
   const setShowPushPrompt     = useAppStore(s => s.setShowPushPrompt)
   const router = useRouter()
-  useEffect(() => { if (profile) setProfile(profile) }, [profile, setProfile])
 
   const canEdit = todayEntry != null &&
     todayEntry.edit_expires_at != null &&

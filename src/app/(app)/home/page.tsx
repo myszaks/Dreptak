@@ -7,22 +7,28 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const today = new Date().toISOString().split('T')[0]
 
-  // Fetch user's active challenges
-  const { data: challenges } = await supabase
-    .from('challenge_members')
-    .select(`
-      challenges (
-        id, name, icon, slug, start_date, end_date, janusz_mode, invite_code, is_public
-      )
-    `)
-    .eq('user_id', user.id)
-    .limit(10)
+  // Run all independent queries in parallel
+  const [
+    { data: profile },
+    { data: challenges },
+    { data: todayEntry },
+  ] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase
+      .from('challenge_members')
+      .select(`challenges (id, name, icon, slug, start_date, end_date, janusz_mode, invite_code, is_public)`)
+      .eq('user_id', user.id)
+      .limit(10),
+    supabase
+      .from('step_entries')
+      .select('step_count, edit_expires_at')
+      .eq('user_id', user.id)
+      .eq('entry_date', today)
+      .limit(1)
+      .maybeSingle(),
+  ])
 
   const activeChallenges = (challenges as any[])
     ?.map((cm) => cm.challenges)
@@ -67,15 +73,6 @@ export default async function HomePage() {
   for (const row of resolvedMemberCountRows) {
     memberCounts[row.challenge_id] = Number(row.member_count)
   }
-
-  const today = new Date().toISOString().split('T')[0]
-  const { data: todayEntry } = await supabase
-    .from('step_entries')
-    .select('step_count, edit_expires_at')
-    .eq('user_id', user.id)
-    .eq('entry_date', today)
-    .limit(1)
-    .maybeSingle()
 
   return (
     <HomeClient

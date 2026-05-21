@@ -27,17 +27,20 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANT: Do not run code between createServerClient and
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
 
   const publicPaths = ['/auth', '/auth/callback', '/api/og', '/manifest.json', '/join']
   const isPublicPath = publicPaths.some((p) => pathname.startsWith(p))
 
+  console.log(`[MIDDLEWARE] ${pathname} | user=${user?.id ?? 'none'} | public=${isPublicPath}${authError ? ` | authError=${authError.message}` : ''}`)
+
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth'
     url.searchParams.set('next', `${pathname}${request.nextUrl.search}`)
+    console.log(`[MIDDLEWARE] redirect → /auth?next=${pathname} | reason=no_session`)
     return NextResponse.redirect(url)
   }
 

@@ -22,10 +22,8 @@ export function JoinClient({ profile, initialCode }: JoinClientProps) {
   const [code, setCode] = useState(initialCode?.toUpperCase() ?? '')
   const [autoJoinDone, setAutoJoinDone] = useState(false)
   const joinChallenge = useJoinChallenge()
-  const { setProfile, pushPermissionAsked, setShowPushPrompt } = useAppStore()
+  const { pushPermissionAsked, setShowPushPrompt } = useAppStore()
   const router = useRouter()
-
-  useEffect(() => { if (profile) setProfile(profile) }, [profile, setProfile])
 
   const handleJoin = async (rawCode?: string) => {
     const normalizedCode = (rawCode ?? code).trim().toUpperCase()

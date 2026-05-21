@@ -31,14 +31,15 @@ export function SettingsClient({ profile: initialProfile }: SettingsClientProps)
   }, [initialProfile, setProfile])
 
   const handleSave = async () => {
-    const profile = useAppStore.getState().profile
-    if (!profile) return
+    // Use the prop ID — it never changes between server render and client interaction,
+    // and avoids reading from the global Zustand store inside an event handler.
+    if (!initialProfile?.id) return
     setLoading(true)
     try {
       const { data, error } = await supabase
         .from('profiles')
         .update({ username: username.trim(), bio: bio.trim() })
-        .eq('id', profile.id)
+        .eq('id', initialProfile.id)
         .select()
         .single()
 
