@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { QueryProvider } from '@/lib/query-provider'
 import { Toaster } from 'sonner'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
@@ -70,6 +71,7 @@ export default function RootLayout({
             }}
           />
         </QueryProvider>
+        <SpeedInsights />
       </body>
     </html>
   )
