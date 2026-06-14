@@ -1,9 +1,13 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Geist } from 'next/font/google'
 import './globals.css'
 import { QueryProvider } from '@/lib/query-provider'
 import { Toaster } from 'sonner'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { PwaInstallSheet } from '@/components/pwa/pwa-install-sheet'
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
@@ -47,7 +51,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pl" className="dark" suppressHydrationWarning>
+    <html lang="pl" className={cn("dark", "font-sans", geist.variable)} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
         <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
@@ -71,6 +75,7 @@ export default function RootLayout({
             }}
           />
         </QueryProvider>
+        <PwaInstallSheet />
         <SpeedInsights />
       </body>
     </html>

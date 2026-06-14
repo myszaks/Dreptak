@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store/app-store'
 import { toast } from 'sonner'
 import type { Profile } from '@/types/database'
+import { Textarea } from "@/components/ui/textarea";
 
 interface SettingsClientProps {
   profile: Profile | null
@@ -81,18 +82,24 @@ export function SettingsClient({ profile: initialProfile }: SettingsClientProps)
             <Input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              maxLength={20}
+              maxLength={15}
               placeholder="Twoja nazwa..."
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-semibold text-muted-foreground">Bio</label>
-            <Input
+            <Textarea
               value={bio}
-              onChange={(e) => setBio(e.target.value)}
+              onChange={(e) => {
+                const textarea = e.currentTarget;
+                textarea.style.height = "auto";
+                textarea.style.height = `${textarea.scrollHeight}px`;
+                setBio(e.target.value);
+              }}
               maxLength={100}
               placeholder="Krótki opis..."
+              className="min-h-[40px] resize-none"
             />
           </div>
 

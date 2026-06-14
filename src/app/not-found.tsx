@@ -10,7 +10,7 @@ export default function NotFound() {
         <p className="text-sm text-muted-foreground">Ta strona nie istnieje lub została usunięta</p>
       </div>
       <Link href="/home">
-        <Button variant="gradient">Wróć do domu</Button>
+        <Button variant="gradient">Wróć na ekran główny</Button>
       </Link>
     </div>
   )

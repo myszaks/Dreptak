@@ -43,7 +43,7 @@ export function JoinClient({ profile, initialCode }: JoinClientProps) {
   useEffect(() => {
     if (!initialCode || autoJoinDone || joinChallenge.isPending) return
     const normalizedCode = initialCode.trim().toUpperCase()
-    if (normalizedCode.length < 6) return
+    if (normalizedCode.length < 8) return
     setCode(normalizedCode)
     setAutoJoinDone(true)
     void handleJoin(normalizedCode)
@@ -88,7 +88,7 @@ export function JoinClient({ profile, initialCode }: JoinClientProps) {
               size="lg"
               onClick={() => handleJoin()}
               loading={joinChallenge.isPending}
-              disabled={code.length < 6}
+              disabled={code.length < 8}
             >
               Dołącz do wyzwania 🚀
             </Button>

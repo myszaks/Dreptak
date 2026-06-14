@@ -80,8 +80,12 @@ export function useJoinChallenge() {
 
   return useMutation({
     mutationFn: async (inviteCode: string) => {
-      const profile = useAppStore.getState().profile
-      if (!profile) throw new Error('Musisz być zalogowany')
+      const {     
+          data: { user },       
+          error: userErr,
+      } = await supabase.auth.getUser()
+      if (userErr) throw userErr
+      if (!user) throw new Error('Musisz być zalogowany')
 
       // Find challenge by invite code
       const { data: challenge, error: findErr } = await withTimeout(
@@ -102,7 +106,7 @@ export function useJoinChallenge() {
           .from('challenge_members')
           .select('id')
           .eq('challenge_id', challenge.id)
-          .eq('user_id', profile.id)
+          .eq('user_id', user.id)
           .maybeSingle(),
         DB_TIMEOUT_MS,
         'Przekroczono czas sprawdzania członkostwa'
@@ -116,7 +120,7 @@ export function useJoinChallenge() {
       const { error: joinErr } = await withTimeout(
         supabase
           .from('challenge_members')
-          .insert({ challenge_id: challenge.id, user_id: profile.id }),
+          .insert({ challenge_id: challenge.id, user_id: user.id }),
         DB_TIMEOUT_MS,
         'Przekroczono czas dołączania do wyzwania'
       )
@@ -124,42 +128,18 @@ export function useJoinChallenge() {
       if (joinErr) throw joinErr
 
       // Backfill historycznych wpisów użytkownika dla zakresu dat wyzwania
-      const { data: existingEntries, error: entriesErr } = await withTimeout(
-        supabase
-          .from('step_entries')
-          .select('entry_date, step_count')
-          .eq('user_id', profile.id)
-          .gte('entry_date', challenge.start_date)
-          .lte('entry_date', challenge.end_date)
-          .order('entry_date', { ascending: true }),
-        DB_TIMEOUT_MS,
-        'Przekroczono czas pobierania historii kroków'
-      )
-      if (entriesErr) throw entriesErr
-
-      const dailyMax = new Map<string, number>()
-      for (const row of existingEntries ?? []) {
-        const prev = dailyMax.get(row.entry_date) ?? 0
-        if (row.step_count > prev) dailyMax.set(row.entry_date, row.step_count)
-      }
-
-      if (dailyMax.size > 0) {
-        const rows = Array.from(dailyMax.entries()).map(([entry_date, step_count]) => ({
-          challenge_id: challenge.id,
-          user_id: profile.id,
-          entry_date,
-          step_count,
-          is_edited: false,
-        }))
-
-        const { error: backfillErr } = await withTimeout(
-          supabase
-            .from('step_entries')
-            .upsert(rows, { onConflict: 'challenge_id,user_id,entry_date' }),
-          DB_TIMEOUT_MS,
-          'Przekroczono czas uzupełniania historii kroków'
-        )
-        if (backfillErr) throw backfillErr
+      // Server-side endpoint performs the actual read+upsert (bypasses RLS).
+      try {
+        const res = await fetch('/api/challenges/backfill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ challengeId: challenge.id }),
+        })
+        const j = await res.json()
+        if (!res.ok) throw new Error(j?.error ?? 'Backfill failed')
+      } catch (err) {
+        console.error('[useJoinChallenge] backfill error', err)
+        throw err
       }
 
       // Create activity feed item
@@ -167,7 +147,7 @@ export function useJoinChallenge() {
         supabase.from('activity_feed').insert({
           challenge_id: challenge.id,
           type: 'member_joined',
-          actor_id: profile.id,
+          actor_id: user.id,
         }),
         DB_TIMEOUT_MS,
         'Przekroczono czas zapisu aktywności'
@@ -199,8 +179,12 @@ export function useCreateChallenge() {
       janusz_mode?: boolean
       janusz_penalty_text?: string
     }) => {
-      const profile = useAppStore.getState().profile
-      if (!profile) throw new Error('Musisz być zalogowany')
+      const {        
+          data: { user },        
+          error: userErr,
+      } = await supabase.auth.getUser()      
+      if (userErr) throw userErr
+      if (!user) throw new Error('Musisz być zalogowany')
 
       const id = crypto.randomUUID()
       const { error: insertError } = await withTimeout(
@@ -209,7 +193,7 @@ export function useCreateChallenge() {
           .insert({
             id,
             ...input,
-            created_by: profile.id,
+            created_by: user.id,
           }),
         DB_TIMEOUT_MS,
         'Przekroczono czas tworzenia wyzwania'
@@ -225,14 +209,14 @@ export function useCreateChallenge() {
         withTimeout(
           supabase
             .from('challenge_members')
-            .insert({ challenge_id: id, user_id: profile.id, role: 'admin' }),
+            .insert({ challenge_id: id, user_id: user.id, role: 'admin' }),
           DB_TIMEOUT_MS,
           'Przekroczono czas dodawania członkostwa'
         ),
         withTimeout(
           supabase
             .from('activity_feed')
-            .insert({ challenge_id: id, type: 'challenge_started', actor_id: profile.id }),
+            .insert({ challenge_id: id, type: 'challenge_started', actor_id: user.id }),
           DB_TIMEOUT_MS,
           'Przekroczono czas zapisu aktywności'
         ),
@@ -256,6 +240,39 @@ export function useCreateChallenge() {
     },
     onError: (error) => {
       console.error('[useCreateChallenge] error:', error)
+    },
+  })
+}
+
+export function useUpdateChallenge() {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, input }: { id: string; input: Partial<{
+      name: string
+      description?: string
+      icon?: string
+      start_date: string
+      end_date: string
+      is_public?: boolean
+      janusz_mode?: boolean
+      janusz_penalty_text?: string
+    }> }) => {
+      const { error } = await withTimeout(
+        supabase
+          .from('challenges')
+          .update({ ...input })
+          .eq('id', id),
+        DB_TIMEOUT_MS,
+        'Przekroczono czas aktualizacji wyzwania'
+      )
+      if (error) throw error
+      return { id }
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['challenges'] })
+      queryClient.invalidateQueries({ queryKey: ['challenge', vars.id] })
     },
   })
 }

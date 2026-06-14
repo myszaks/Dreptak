@@ -73,10 +73,10 @@ export function ProfileClient({ profile, achievements, totalChallenges }: Profil
                   className="border-4 border-card ring-2 ring-white/10"
                 />
               </div>
-              <div className="flex-1 pb-1">
+              <div className="flex-1 min-w-0 pb-1">
                 <h2 className="text-lg font-black">{profile.username}</h2>
                 {profile.bio && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{profile.bio}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 break-all">{profile.bio}</p>
                 )}
               </div>
               <Link href="/settings">

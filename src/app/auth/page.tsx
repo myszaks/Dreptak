@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/hooks/use-auth'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useState, Suspense } from 'react'
@@ -75,9 +76,13 @@ function AuthContent() {
           initial={{ scale: 0, rotate: -20 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
-          className="w-24 h-24 rounded-3xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-5xl shadow-xl shadow-blue-500/30"
+          className="w-24 h-24 rounded-3xl  flex items-center justify-center "
         >
-          👟
+          <img
+            src="/logo-source.png"
+            alt="Dreptak logo"
+            className="w-20 h-20 object-contain rounded-2xl"
+          />
         </motion.div>
 
         <motion.div
@@ -224,7 +229,7 @@ function AuthContent() {
         </AnimatePresence>
 
         <p className="text-[11px] text-center text-muted-foreground px-4">
-          Logując się akceptujesz regulamin. Dane używane tylko na potrzeby challengy.
+          Logując się akceptujesz <Link href="/terms" className="underline text-primary">regulamin</Link>. Dane używane tylko na potrzeby wyzwań.
         </p>
       </motion.div>
     </div>

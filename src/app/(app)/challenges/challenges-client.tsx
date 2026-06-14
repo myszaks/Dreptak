@@ -79,10 +79,10 @@ export function ChallengesClient({ memberships, userId, profile, memberCounts }:
             Aktywne {active.length > 0 && `(${active.length})`}
           </TabsTrigger>
           <TabsTrigger value="upcoming">
-            Nadchodzące
+            Nadchodzące {upcoming.length > 0 && `(${upcoming.length})`}
           </TabsTrigger>
           <TabsTrigger value="ended">
-            Zakończone
+            Zakończone {ended.length > 0 && `(${ended.length})`}
           </TabsTrigger>
         </TabsList>
 

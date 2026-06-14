@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { useAppStore } from '@/store/app-store'
 import type { Profile } from '@/types/database'
@@ -25,11 +25,12 @@ interface AuthInitializerProps {
 export function AuthInitializer({ profile }: AuthInitializerProps) {
   const setProfile = useAppStore(s => s.setProfile)
 
-  // Runs synchronously during render — before any child/sibling renders.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  useState(() => {
+  // Seed the store before paint but after render to avoid React's "cannot
+  // update a component while rendering a different component" error.
+  useLayoutEffect(() => {
     if (profile) useAppStore.setState({ profile })
-  })
+    // Intentionally no dependencies besides profile.
+  }, [profile])
 
   // Keep Zustand in sync when the layout RSC re-fetches on navigation.
   useEffect(() => {

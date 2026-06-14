@@ -17,6 +17,17 @@ import { formatSteps } from '@/lib/utils'
 import type { Challenge, Profile } from '@/types/database'
 import { toast } from 'sonner'
 
+const getTodayDateKey = () => {
+  const d = new Date()
+  return (
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0')
+  )
+}
+
 const OCRUpload = dynamic(() => import('@/components/upload/ocr-upload').then(m => m.OCRUpload), {
   loading: () => <Skeleton className="h-48 w-full" />,
   ssr: false,
@@ -59,7 +70,7 @@ export function UploadClient({ activeChallenges, profile, todayEntry }: UploadCl
     if (hasReachedLimit) setMode('manual')
   }, [hasReachedLimit])
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayDateKey()
   const todayLabel = new Date().toLocaleDateString('pl-PL', {
     weekday: 'long',
     day: 'numeric',
@@ -135,7 +146,7 @@ export function UploadClient({ activeChallenges, profile, todayEntry }: UploadCl
             </p>
           </div>
           <Link href="/home">
-            <Button variant="gradient">Wróć do domu</Button>
+            <Button variant="gradient">Wróć na ekran główny</Button>
           </Link>
         </motion.div>
       </div>

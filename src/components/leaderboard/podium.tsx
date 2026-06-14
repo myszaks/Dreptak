@@ -122,7 +122,7 @@ export function LeaderboardRow({ entry, isCurrentUser, delay = 0 }: LeaderboardR
       <div className="flex-1 min-w-0">
         <p className={cn('text-sm font-bold truncate', isCurrentUser && 'text-primary')}>
           {entry.username}
-          {isCurrentUser && <span className="ml-1 text-xs text-primary/70">(ty)</span>}
+          {isCurrentUser && <span className="ml-1 text-xs text-primary/70">(Ty)</span>}
         </p>
         {entry.days_submitted !== undefined && (
           <p className="text-xs text-muted-foreground">{entry.days_submitted} dni aktywnych</p>

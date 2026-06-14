@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Share2, Upload as UploadIcon } from 'lucide-react'
+import { ChevronLeft, Share2, Upload as UploadIcon, Edit3, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -53,6 +54,7 @@ export function ChallengeDetailClient({ challenge, currentUserId, profile: profi
   const { profile } = useAppStore()
   const queryClient = useQueryClient()
   const supabaseRef = useRef(createClient())
+  const router = useRouter()
 
   const { data: leaderboard, isLoading: lbLoading, isError: lbError, refetch: refetchLb } = useChallengeLeaderboard(challenge.id)
   const { data: entries, isLoading: entriesLoading } = useStepEntries(challenge.id)
@@ -129,6 +131,24 @@ export function ChallengeDetailClient({ challenge, currentUserId, profile: profi
     }
   }
 
+  const handleDelete = async () => {
+    if (!profile) {
+      toast.error('Musisz być zalogowany')
+      return
+    }
+    const ok = window.confirm('Na pewno chcesz usunąć wyzwanie? Operacja jest nieodwracalna.')
+    if (!ok) return
+    try {
+      const res = await fetch(`/api/challenges/${challenge.id}`, { method: 'DELETE' })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body?.error ?? 'Błąd podczas usuwania')
+      toast.success('Wyzwanie usunięte')
+      router.push('/challenges')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Błąd')
+    }
+  }
+
   return (
     <div className="page-container space-y-0">
       {/* Header */}
@@ -154,6 +174,18 @@ export function ChallengeDetailClient({ challenge, currentUserId, profile: profi
           <Button variant="ghost" size="icon-sm" onClick={handleShare}>
             <Share2 className="w-4 h-4" />
           </Button>
+          {profile?.id === challenge.created_by && (
+            <>
+              <Link href={`/challenges/${challenge.slug ?? challenge.id}/edit`}>
+                <Button variant="ghost" size="icon-sm">
+                  <Edit3 className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Button variant="destructive" size="icon-sm" onClick={handleDelete}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

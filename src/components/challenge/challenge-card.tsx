@@ -124,6 +124,7 @@ export function ChallengeCard({
             </div>
 
             {/* Invite code */}
+            {!isEnded && (
             <button
               onClick={handleCopyInvite}
               className="w-full flex items-center justify-between px-3 py-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
@@ -140,6 +141,7 @@ export function ChallengeCard({
                 <Copy className="w-4 h-4 text-muted-foreground" />
               )}
             </button>
+            )}
           </CardContent>
         </Card>
       </motion.div>
