@@ -15,7 +15,7 @@ import {
 import { IosInstallHint } from './ios-install-hint'
 
 export function PushPermissionSheet() {
-  const { showPushPrompt, setShowPushPrompt, setPushPermissionAsked } = useAppStore()
+  const { showPushPrompt, setShowPushPrompt, setLastPushPromptTime } = useAppStore()
   const [loading, setLoading]         = useState(false)
   const [showIosHint, setShowIosHint] = useState(false)
 
@@ -51,7 +51,7 @@ export function PushPermissionSheet() {
   }
 
   const dismiss = () => {
-    setPushPermissionAsked(true)
+    setLastPushPromptTime(Date.now())
     setShowPushPrompt(false)
   }
 

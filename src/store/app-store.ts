@@ -18,8 +18,9 @@ interface AppState {
   // Push notifications
   showPushPrompt: boolean
   setShowPushPrompt: (show: boolean) => void
-  pushPermissionAsked: boolean
-  setPushPermissionAsked: (asked: boolean) => void
+  /** Timestamp of last time we showed the push notification prompt (ms). */
+  lastPushPromptTime: number | null
+  setLastPushPromptTime: (time: number | null) => void
 
   // UI
   isUploadOpen: boolean
@@ -44,8 +45,8 @@ export const useAppStore = create<AppState>()(
 
       showPushPrompt: false,
       setShowPushPrompt: (showPushPrompt) => set({ showPushPrompt }),
-      pushPermissionAsked: false,
-      setPushPermissionAsked: (pushPermissionAsked) => set({ pushPermissionAsked }),
+      lastPushPromptTime: null,
+      setLastPushPromptTime: (lastPushPromptTime) => set({ lastPushPromptTime }),
 
       isUploadOpen: false,
       setIsUploadOpen: (isUploadOpen) => set({ isUploadOpen }),
@@ -58,7 +59,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         hasCompletedOnboarding:  state.hasCompletedOnboarding,
         activeChallengeId:       state.activeChallengeId,
-        pushPermissionAsked:     state.pushPermissionAsked,
+        lastPushPromptTime:      state.lastPushPromptTime,
       }),
     }
   )

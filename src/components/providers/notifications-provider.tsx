@@ -16,8 +16,9 @@ import { useAppStore } from '@/store/app-store'
  */
 export function NotificationsProvider() {
   const profile = useAppStore(s => s.profile)
-  const pushPermissionAsked = useAppStore(s => s.pushPermissionAsked)
+  const lastPushPromptTime = useAppStore(s => s.lastPushPromptTime)
   const setShowPushPrompt = useAppStore(s => s.setShowPushPrompt)
+  const setLastPushPromptTime = useAppStore(s => s.setLastPushPromptTime)
 
   // Sync unread count (includes realtime subscription)
   useUnreadNotificationCount()
@@ -45,11 +46,23 @@ export function NotificationsProvider() {
     if (!isPushSupported()) return
 
     const status = getPermissionStatus()
-    if (status === 'default' && !pushPermissionAsked) {
-      const t = setTimeout(() => setShowPushPrompt(true), 1200)
+    
+    // Only show prompt if permission is still 'default' (not yet decided)
+    if (status !== 'default') return
+
+    const now = Date.now()
+    const PROMPT_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+    // Show if never prompted, or if 7+ days have passed since last prompt
+    const shouldShow = !lastPushPromptTime || (now - lastPushPromptTime) > PROMPT_INTERVAL_MS
+
+    if (shouldShow) {
+      const t = setTimeout(() => {
+        setShowPushPrompt(true)
+      }, 1200)
       return () => clearTimeout(t)
     }
-  }, [profile?.id, pushPermissionAsked, setShowPushPrompt])
+  }, [profile?.id, lastPushPromptTime, setShowPushPrompt])
 
   return null
 }
