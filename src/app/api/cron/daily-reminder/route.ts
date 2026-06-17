@@ -59,7 +59,22 @@ const FUNNY_MESSAGES = [
 export async function GET(req: NextRequest) {
   // Verify cron secret (Vercel sets this automatically in production)
   const authHeader = req.headers.get('authorization') ?? ''
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET
+  
+   console.log('[daily-reminder] DEBUG:', {
+    authHeader: authHeader.substring(0, 30),
+    cronSecretSet: !!cronSecret,
+    cronSecretValue: cronSecret?.substring(0, 5) + '***',
+    expectedAuth: `Bearer ${cronSecret?.substring(0, 5)}***`,
+  })
+
+  if (!cronSecret) {
+    console.error('[daily-reminder] CRON_SECRET not set in environment')
+    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 })
+  }
+  
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    console.error(`[daily-reminder] auth failed: expected Bearer ${cronSecret.substring(0, 5)}*** got ${authHeader.substring(0, 20)}...`)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
