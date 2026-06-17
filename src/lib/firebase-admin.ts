@@ -4,7 +4,11 @@ import { getMessaging } from 'firebase-admin/messaging'
 function getAdminApp() {
   if (getApps().length > 0) return getApps()[0]
 
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n')
+  const rawKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+
+const privateKey = rawKey?.includes('\\n')
+  ? rawKey.replace(/\\n/g, '\n')
+  : rawKey;
   
   if (!process.env.FIREBASE_ADMIN_PROJECT_ID) {
     throw new Error('FIREBASE_ADMIN_PROJECT_ID is not set')
