@@ -47,7 +47,6 @@ interface UploadClientProps {
 }
 
 export function UploadClient({ activeChallenges, profile, todayEntry }: UploadClientProps) {
-  const pushPermissionAsked   = useAppStore(s => s.pushPermissionAsked)
   const setShowPushPrompt     = useAppStore(s => s.setShowPushPrompt)
   const router = useRouter()
 
@@ -91,7 +90,7 @@ export function UploadClient({ activeChallenges, profile, todayEntry }: UploadCl
       })
       const n = activeChallenges.length
       toast.success(`✅ Zapisano ${formatSteps(steps)} kroków w ${n} ${n === 1 ? 'wyzwaniu' : 'wyzwaniach'}!`)
-      if (!pushPermissionAsked) setShowPushPrompt(true)
+      setShowPushPrompt(true)
       router.push('/home')
     } catch (err: any) {
       toast.error(err?.message ?? 'Nie udało się zapisać kroków.')

@@ -22,6 +22,11 @@ interface AppState {
   lastPushPromptTime: number | null
   setLastPushPromptTime: (time: number | null) => void
 
+  // PWA install
+  /** Timestamp of last time we showed the PWA install prompt (ms). */
+  lastPwaPromptTime: number | null
+  setLastPwaPromptTime: (time: number | null) => void
+
   // UI
   isUploadOpen: boolean
   setIsUploadOpen: (open: boolean) => void
@@ -48,6 +53,9 @@ export const useAppStore = create<AppState>()(
       lastPushPromptTime: null,
       setLastPushPromptTime: (lastPushPromptTime) => set({ lastPushPromptTime }),
 
+      lastPwaPromptTime: null,
+      setLastPwaPromptTime: (lastPwaPromptTime) => set({ lastPwaPromptTime }),
+
       isUploadOpen: false,
       setIsUploadOpen: (isUploadOpen) => set({ isUploadOpen }),
 
@@ -57,6 +65,7 @@ export const useAppStore = create<AppState>()(
     {
       name: 'dreptak-store',
       partialize: (state) => ({
+        lastPwaPromptTime:       state.lastPwaPromptTime,
         hasCompletedOnboarding:  state.hasCompletedOnboarding,
         activeChallengeId:       state.activeChallengeId,
         lastPushPromptTime:      state.lastPushPromptTime,

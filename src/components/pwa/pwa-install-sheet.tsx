@@ -5,9 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Smartphone, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { isIos, isStandalone } from '@/hooks/use-push-notifications'
+import { useAppStore } from '@/store/app-store'
 import { IosInstallHint } from '@/components/notifications/ios-install-hint'
 
 export function PwaInstallSheet() {
+  const lastPwaPromptTime = useAppStore(s => s.lastPwaPromptTime)
+  const setLastPwaPromptTime = useAppStore(s => s.setLastPwaPromptTime)
+  
   const [mounted, setMounted] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<any | null>(null)
   const [visible, setVisible] = useState(false)
@@ -21,19 +25,26 @@ export function PwaInstallSheet() {
     const handler = (e: Event) => {
       try { e.preventDefault() } catch {}
       setDeferredPrompt(e as any)
-      const dismissed = localStorage.getItem('pwaInstallPromptDismissed')
-      if (!dismissed && !isStandalone()) setVisible(true)
+      
+      // Show if never prompted or if 7 days have passed
+      const now = Date.now()
+      const PROMPT_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+      const shouldShow = !lastPwaPromptTime || (now - lastPwaPromptTime) > PROMPT_INTERVAL_MS
+      
+      if (shouldShow && !isStandalone()) {
+        setVisible(true)
+      }
     }
 
     window.addEventListener('beforeinstallprompt', handler as EventListener)
     return () => window.removeEventListener('beforeinstallprompt', handler as EventListener)
-  }, [])
+  }, [lastPwaPromptTime])
 
   if (!mounted || !visible) return null
 
   const dismiss = () => {
     setVisible(false)
-    try { localStorage.setItem('pwaInstallPromptDismissed', '1') } catch {}
+    setLastPwaPromptTime(Date.now())
   }
 
   const handleInstall = async () => {

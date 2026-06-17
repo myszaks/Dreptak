@@ -22,7 +22,7 @@ export function JoinClient({ profile, initialCode }: JoinClientProps) {
   const [code, setCode] = useState(initialCode?.toUpperCase() ?? '')
   const [autoJoinDone, setAutoJoinDone] = useState(false)
   const joinChallenge = useJoinChallenge()
-  const { pushPermissionAsked, setShowPushPrompt } = useAppStore()
+  const setShowPushPrompt = useAppStore(s => s.setShowPushPrompt)
   const router = useRouter()
 
   const handleJoin = async (rawCode?: string) => {
@@ -33,7 +33,7 @@ export function JoinClient({ profile, initialCode }: JoinClientProps) {
       const challenge = await joinChallenge.mutateAsync(normalizedCode)
       toast.success(`🎉 Dołączyłeś/aś do "${challenge.name}"!`)
       // Trigger notification permission prompt after first join
-      if (!pushPermissionAsked) setShowPushPrompt(true)
+      setShowPushPrompt(true)
       router.push(`/challenges/${challenge.slug ?? challenge.id}`)
     } catch (err: any) {
       toast.error(err?.message ?? 'Błędny kod zaproszenia')
