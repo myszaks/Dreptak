@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendPushNotification } from '@/lib/notifications'
 
+export const runtime = 'nodejs'
+
 /**
  * GET /api/cron/daily-reminder
  *

@@ -10,6 +10,8 @@ import { toast } from 'sonner'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Mail } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 type Mode = 'login' | 'register'
 
 function AuthContent() {
@@ -238,7 +240,7 @@ function AuthContent() {
 
 export default function AuthPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div className="min-h-dvh bg-background" />}>
       <AuthContent />
     </Suspense>
   )
