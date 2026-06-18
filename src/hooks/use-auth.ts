@@ -68,6 +68,27 @@ export function useAuth() {
   }
 
   const signUpWithEmail = async (email: string, password: string) => {
+    // Check if email already exists
+    try {
+      const response = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      const { exists } = await response.json()
+
+      if (exists) {
+        throw new Error('User already registered')
+      }
+    } catch (error: any) {
+      // If check fails but says "already registered", throw it
+      if (error.message.includes('already registered')) {
+        throw error
+      }
+      // Otherwise, continue with signup attempt
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,

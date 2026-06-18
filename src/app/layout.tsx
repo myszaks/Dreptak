@@ -5,7 +5,9 @@ import { QueryProvider } from '@/lib/query-provider'
 import { Toaster } from 'sonner'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { PwaInstallSheet } from '@/components/pwa/pwa-install-sheet'
-import { cn } from "@/lib/utils";
+import { TermsDialog } from '@/components/terms-dialog'
+import { cn } from "@/lib/utils"
+import { Suspense } from 'react'
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -74,6 +76,9 @@ export default function RootLayout({
               },
             }}
           />
+          <Suspense fallback={null}>
+            <TermsDialog />
+          </Suspense>
         </QueryProvider>
         <PwaInstallSheet />
         <SpeedInsights />

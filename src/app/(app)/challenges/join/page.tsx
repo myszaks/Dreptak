@@ -1,6 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { JoinClient } from './join-client'
+import { Suspense } from 'react'
+
+export const dynamic = 'force-dynamic'
+
+function JoinClientWrapper({
+  profile,
+  code,
+}: {
+  profile: any
+  code?: string
+}) {
+  return <JoinClient profile={profile} initialCode={code?.trim().toUpperCase()} />
+}
 
 export default async function JoinChallengePage({
   searchParams,
@@ -18,5 +31,9 @@ export default async function JoinChallengePage({
     .eq('id', user.id)
     .single()
 
-  return <JoinClient profile={profile as any} initialCode={code?.trim().toUpperCase()} />
+  return (
+    <Suspense fallback={<div className="page-container">Ładowanie...</div>}>
+      <JoinClientWrapper profile={profile as any} code={code} />
+    </Suspense>
+  )
 }
