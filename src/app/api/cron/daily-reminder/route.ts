@@ -71,18 +71,6 @@ export async function GET(req: NextRequest) {
   // so we never accidentally send "yesterday" reminders at 20:00 CET
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
 
-  // Only proceed if it's 21:00 in Warsaw — this avoids DST issues
-  const warsawHourStr = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    hour12: false,
-    timeZone: 'Europe/Warsaw',
-  }).format(new Date())
-  const warsawHour = Number(warsawHourStr)
-  if (warsawHour !== 21) {
-    console.log(`[daily-reminder] skipping send — Warsaw hour=${warsawHour}`)
-    return NextResponse.json({ ok: true, skipped: true, hour: warsawHour })
-  }
-
   // Find users with active challenges who haven't submitted steps today
   const { data: usersToRemind, error: rpcError } = await adminSupabase
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
